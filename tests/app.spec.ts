@@ -59,10 +59,29 @@ suite("app", () => {
       expect(res.status).toBe(200);
     });
 
+    it("succeeds with uri encoded url", async () => {
+      const url = encodeURIComponent("https://jasonraimondi.com");
+      const res = await app.request(`/?url=${url}`);
+      console.log(`/?url=${url}`)
+      expect(res.status).toBe(200);
+    });
+
     it("throws when invalid domain", async () => {
       const res = await app.request("/?url=bar");
       expect(res.status).toBe(400);
       expect(await res.text()).toMatch(/Invalid query/gi);
+    });
+
+    [
+      "file:///etc/passwd&width=4000",
+      "view-source:file:///home/&width=4000",
+      "view-source:file:///home/ec2-user/url-to-png/.env",
+    ].forEach(invalidDomain => {
+      it(`throws when invalid protocol ${invalidDomain}`, async () => {
+        const res = await app.request(`/?url=${invalidDomain}`);
+        expect(res.status).toBe(400);
+        expect(await res.text()).toMatch(/url - must start with http or https/gi);
+      });
     });
   });
 

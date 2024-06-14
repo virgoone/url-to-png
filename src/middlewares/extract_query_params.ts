@@ -7,6 +7,7 @@ import { AppEnv } from "../app.js";
 
 import { PlainConfigSchema } from "../lib/schema.js";
 import { configToString, slugify } from "../lib/utils.js";
+import { logger } from "../lib/logger.js";
 
 export function handleExtractQueryParamsMiddleware(encryptionService?: StringEncrypter) {
   return async (c: Context<AppEnv>, next: () => Promise<void>) => {
@@ -32,14 +33,21 @@ export function handleExtractQueryParamsMiddleware(encryptionService?: StringEnc
 
     const { validData, errors } = parseForm({ data: input, schema: PlainConfigSchema });
 
+    if (validData?.viewPortWidth !== undefined) {
+      logger.warn("'viewPortWidth' is deprecated, please use 'viewportWidth'");
+    }
+    if (validData?.viewPortHeight !== undefined) {
+      logger.warn("'viewPortHeight' is deprecated, please use 'viewportHeight'");
+    }
+
     if (errors) {
       let message: string = "Invalid query parameters: ";
 
-      const specificErrors = Object.entries(errors).map(([key, value]) => `(${key} - ${value})`).join(" ")
+      const specificErrors = Object.entries(errors)
+        .map(([key, value]) => `(${key} - ${value})`)
+        .join(" ");
 
       message = `${message} ${specificErrors}`;
-
-      console.log(message);
 
       throw new HTTPException(400, { message, cause: errors });
     }
@@ -52,11 +60,13 @@ export function handleExtractQueryParamsMiddleware(encryptionService?: StringEnc
       validData.height = 1920;
     }
 
-    if (validData.viewPortWidth && validData.viewPortWidth > 1920) {
+    const viewportWidth = validData.viewportWidth ?? validData.viewPortWidth;
+    if (viewportWidth && viewportWidth > 1920) {
       validData.width = 1920;
     }
 
-    if (validData.viewPortHeight && validData.viewPortHeight > 1920) {
+    const viewportHeight = validData.viewportHeight ?? validData.viewPortHeight;
+    if (viewportHeight && viewportHeight > 1920) {
       validData.width = 1920;
     }
 

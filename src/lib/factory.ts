@@ -10,6 +10,7 @@ import { CouchDbStorageProvider } from "./storage/couch-db.js";
 import { FileSystemStorageProvider } from "./storage/filesystem.js";
 import { AmazonS3StorageProvider } from "./storage/s3.js";
 import { StubStorageProvider } from "./storage/stub.js";
+import { isValidNum } from "./utils.js";
 
 export function createBrowserPool(opts: Options = {}) {
   return new BrowserPool({ poolOpts: opts });
@@ -24,11 +25,30 @@ export function createImageRenderService(browserPool: BrowserPool) {
       navigationOptions.waitUntil = process.env.BROWSER_WAIT_UNTIL;
       break;
     default:
-      navigationOptions.waitUntil = "domcontentloaded";
       break;
   }
 
-  return new ImageRenderService(browserPool, navigationOptions);
+  const width = isValidNum(process.env.DEFAULT_WIDTH) ? Number(process.env.DEFAULT_WIDTH) : 250;
+  const height = isValidNum(process.env.DEFAULT_HEIGHT) ? Number(process.env.DEFAULT_HEIGHT) : 250;
+
+  const defaultConfig = {
+    width,
+    height,
+    viewportWidth: isValidNum(process.env.DEFAULT_VIEWPORT_WIDTH)
+      ? Number(process.env.DEFAULT_VIEWPORT_WIDTH)
+      : 1080,
+    viewportHeight: isValidNum(process.env.DEFAULT_VIEWPORT_HEIGHT)
+      ? Number(process.env.DEFAULT_VIEWPORT_HEIGHT)
+      : 1080,
+    isMobile: process.env.DEFAULT_IS_MOBILE === "true",
+    isFullPage: process.env.DEFAULT_IS_FULL_PAGE === "true",
+    isDarkMode: process.env.DEFAULT_IS_DARK_MODE === "true",
+    deviceScaleFactor: isValidNum(process.env.DEFAULT_DEVICE_SCALE_FACTOR)
+      ? Number(process.env.DEFAULT_DEVICE_SCALE_FACTOR)
+      : 1,
+  };
+
+  return new ImageRenderService(browserPool, defaultConfig, navigationOptions);
 }
 
 export function createImageStorageService(): ImageStorage {
